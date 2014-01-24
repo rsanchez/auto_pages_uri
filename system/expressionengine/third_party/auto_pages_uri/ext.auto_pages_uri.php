@@ -7,7 +7,7 @@ class Auto_pages_uri_ext
 	public $version = '1.0.1';
 	public $description = 'Automatically generate the Pages URI when creating a new entry.';
 	public $settings_exist = 'y';
-	public $docs_url = 'http://github.com/rsanchez/auto_pages_uri';
+	public $docs_url = 'https://github.com/rsanchez/auto_pages_uri';
 
 	/**
 	 * constructor
