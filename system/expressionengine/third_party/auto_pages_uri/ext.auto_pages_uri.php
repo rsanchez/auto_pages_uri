@@ -4,28 +4,26 @@ class Auto_pages_uri_ext
 {
 	public $settings = array();
 	public $name = 'Auto Pages URI';
-	public $version = '1.0.0';
+	public $version = '1.0.1';
 	public $description = 'Automatically generate the Pages URI when creating a new entry.';
-	public $settings_exist = 'n';
+	public $settings_exist = 'y';
 	public $docs_url = 'http://github.com/rsanchez/auto_pages_uri';
-	
+
 	/**
 	 * constructor
-	 * 
+	 *
 	 * @access	public
 	 * @param	mixed $settings = ''
 	 * @return	void
 	 */
 	public function __construct($settings = '')
 	{
-		$this->EE =& get_instance();
-		
 		$this->settings = $settings;
 	}
-	
+
 	/**
 	 * activate_extension
-	 * 
+	 *
 	 * @access	public
 	 * @return	void
 	 */
@@ -33,26 +31,26 @@ class Auto_pages_uri_ext
 	{
 		$hook_defaults = array(
 			'class' => __CLASS__,
-			'settings' => '',
+			'settings' => serialize(array('channels' => array())),
 			'version' => $this->version,
 			'enabled' => 'y',
 			'priority' => 10
 		);
-		
+
 		$hooks[] = array(
 			'method' => 'publish_form_channel_preferences',
 			'hook' => 'publish_form_channel_preferences'
 		);
-		
+
 		foreach ($hooks as $hook)
 		{
-			$this->EE->db->insert('extensions', array_merge($hook_defaults, $hook));
+			ee()->db->insert('extensions', array_merge($hook_defaults, $hook));
 		}
 	}
-	
+
 	/**
 	 * update_extension
-	 * 
+	 *
 	 * @access	public
 	 * @param	mixed $current = ''
 	 * @return	void
@@ -63,50 +61,70 @@ class Auto_pages_uri_ext
 		{
 			return FALSE;
 		}
-		
-		$this->EE->db->update('extensions', array('version' => $this->version), array('class' => __CLASS__));
+
+		ee()->db->update('extensions', array('version' => $this->version), array('class' => __CLASS__));
 	}
-	
+
 	/**
 	 * disable_extension
-	 * 
+	 *
 	 * @access	public
 	 * @return	void
 	 */
 	public function disable_extension()
 	{
-		$this->EE->db->delete('extensions', array('class' => __CLASS__));
+		ee()->db->delete('extensions', array('class' => __CLASS__));
 	}
-	
+
 	/**
 	 * settings
-	 * 
+	 *
 	 * @access	public
 	 * @return	void
 	 */
 	public function settings()
 	{
-		return array();
+		$query = ee()->db->get('channels');
+
+		$channels = array();
+
+		foreach ($query->result() as $row)
+		{
+			$channels[$row->channel_id] = $row->channel_title;
+		}
+
+		$query->free_result();
+
+		return array(
+			'channels' => array('c', $channels, array()),
+		);
 	}
-	
+
 	public function publish_form_channel_preferences($row)
 	{
-		if ($this->EE->extensions->last_call !== FALSE)
+		if (ee()->extensions->last_call !== FALSE)
 		{
-			$row = $this->EE->extensions->last_call;
+			$row = ee()->extensions->last_call;
 		}
-		
+
 		//new entries only
-		if ($this->EE->input->get_post('entry_id'))
+		if (ee()->input->get_post('entry_id'))
 		{
 			return $row;
 		}
-		
-		//$site_pages = $this->EE->config->item('site_pages');
-		
-		$this->EE->load->library('javascript');
-		
-		$this->EE->javascript->output('
+
+		$channel_id = ee()->input->get_post('channel_id');
+
+		$valid_channels = isset($this->settings['channels']) ? $this->settings['channels'] : array();
+
+		if ( ! $channel_id || ! in_array($channel_id, $valid_channels))
+		{
+			return $row;
+		}
+
+		ee()->load->library('javascript');
+
+		ee()->javascript->output('
 		$("#title").bind("keyup blur", function() {
 			var pagesUri = document.getElementById("pages__pages_uri");
 			$(this).ee_url_title(pagesUri, true);
@@ -115,7 +133,7 @@ class Auto_pages_uri_ext
 			}
 		});
 		');
-		
+
 		return $row;
 	}
 }
