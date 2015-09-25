@@ -4,7 +4,7 @@ class Auto_pages_uri_ext
 {
 	public $settings = array();
 	public $name = 'Auto Pages URI';
-	public $version = '1.0.1';
+	public $version = '1.0.2';
 	public $description = 'Automatically generate the Pages URI when creating a new entry.';
 	public $settings_exist = 'y';
 	public $docs_url = 'https://github.com/rsanchez/auto_pages_uri';
@@ -125,12 +125,19 @@ class Auto_pages_uri_ext
 		ee()->load->library('javascript');
 
 		ee()->javascript->output('
-		$("#title").bind("keyup blur", function() {
-			var pagesUri = document.getElementById("pages__pages_uri");
-			$(this).ee_url_title(pagesUri, true);
-			if (pagesUri.value) {
-				pagesUri.value = "/"+pagesUri.value;
+		(function() {
+			var $title = $("[name=title]");
+			var $urlTitle = $("[name=url_title]");
+			var pagesUri = $("[name=pages__pages_uri]")[0];
+
+			function copyUrlTitle() {
+				var urlTitle = $urlTitle.val();
+				pagesUri.value = urlTitle ? "/" + urlTitle : "";
 			}
+
+			$title.on("keyup blur", function() {
+				setTimeout(copyUrlTitle, 50);
+			});
 		});
 		');
 
