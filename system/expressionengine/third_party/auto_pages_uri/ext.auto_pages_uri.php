@@ -4,7 +4,7 @@ class Auto_pages_uri_ext
 {
 	public $settings = array();
 	public $name = 'Auto Pages URI';
-	public $version = '1.0.2';
+	public $version = '1.0.3';
 	public $description = 'Automatically generate the Pages URI when creating a new entry.';
 	public $settings_exist = 'y';
 	public $docs_url = 'https://github.com/rsanchez/auto_pages_uri';
@@ -138,7 +138,7 @@ class Auto_pages_uri_ext
 			$title.on("keyup blur", function() {
 				setTimeout(copyUrlTitle, 50);
 			});
-		});
+		})();
 		');
 
 		return $row;
