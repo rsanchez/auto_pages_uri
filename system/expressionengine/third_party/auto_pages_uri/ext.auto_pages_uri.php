@@ -4,7 +4,7 @@ class Auto_pages_uri_ext
 {
 	public $settings = array();
 	public $name = 'Auto Pages URI';
-	public $version = '1.0.3';
+	public $version = '1.0.4';
 	public $description = 'Automatically generate the Pages URI when creating a new entry.';
 	public $settings_exist = 'y';
 	public $docs_url = 'https://github.com/rsanchez/auto_pages_uri';
@@ -128,15 +128,21 @@ class Auto_pages_uri_ext
 		(function() {
 			var $title = $("[name=title]");
 			var $urlTitle = $("[name=url_title]");
+			var $parentPage = $(".auto-pages-uri-parent-page").first();
 			var pagesUri = $("[name=pages__pages_uri]")[0];
 
 			function copyUrlTitle() {
 				var urlTitle = $urlTitle.val();
-				pagesUri.value = urlTitle ? "/" + urlTitle : "";
+				var prefix = $parentPage.length > 0 ? $parentPage.val() : "";
+				pagesUri.value = urlTitle ? prefix + "/" + urlTitle : "";
 			}
 
 			$title.on("keyup blur", function() {
 				setTimeout(copyUrlTitle, 50);
+			});
+
+			$parentPage.change(function() {
+				$title.trigger("keyup");
 			});
 		})();
 		');
