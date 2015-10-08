@@ -69,18 +69,15 @@ class Auto_pages_uri_ext
 
 		if (version_compare($current, '1.0.5', '<'))
 		{
-			foreach ($hooks as $hook)
-			{
-				ee()->db->insert('extensions', array(
-					'class' => __CLASS__,
-					'settings' => serialize(array('channels' => array())),
-					'version' => $this->version,
-					'enabled' => 'y',
-					'priority' => 10,
-					'method' => 'entry_submission_ready',
-					'hook' => 'entry_submission_ready',
-				));
-			}
+			ee()->db->insert('extensions', array(
+				'class' => __CLASS__,
+				'settings' => serialize(array('channels' => array())),
+				'version' => $this->version,
+				'enabled' => 'y',
+				'priority' => 10,
+				'method' => 'entry_submission_ready',
+				'hook' => 'entry_submission_ready',
+			));
 		}
 
 		ee()->db->update('extensions', array('version' => $this->version), array('class' => __CLASS__));
