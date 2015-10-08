@@ -4,7 +4,7 @@ class Auto_pages_uri_ext
 {
 	public $settings = array();
 	public $name = 'Auto Pages URI';
-	public $version = '1.0.4';
+	public $version = '1.0.5';
 	public $description = 'Automatically generate the Pages URI when creating a new entry.';
 	public $settings_exist = 'y';
 	public $docs_url = 'https://github.com/rsanchez/auto_pages_uri';
@@ -39,7 +39,12 @@ class Auto_pages_uri_ext
 
 		$hooks[] = array(
 			'method' => 'publish_form_channel_preferences',
-			'hook' => 'publish_form_channel_preferences'
+			'hook' => 'publish_form_channel_preferences',
+		);
+
+		$hooks[] = array(
+			'method' => 'entry_submission_ready',
+			'hook' => 'entry_submission_ready',
 		);
 
 		foreach ($hooks as $hook)
@@ -60,6 +65,22 @@ class Auto_pages_uri_ext
 		if ($current == '' OR $current == $this->version)
 		{
 			return FALSE;
+		}
+
+		if (version_compare($current, '1.0.5', '<'))
+		{
+			foreach ($hooks as $hook)
+			{
+				ee()->db->insert('extensions', array(
+					'class' => __CLASS__,
+					'settings' => serialize(array('channels' => array())),
+					'version' => $this->version,
+					'enabled' => 'y',
+					'priority' => 10,
+					'method' => 'entry_submission_ready',
+					'hook' => 'entry_submission_ready',
+				));
+			}
 		}
 
 		ee()->db->update('extensions', array('version' => $this->version), array('class' => __CLASS__));
@@ -148,6 +169,84 @@ class Auto_pages_uri_ext
 		');
 
 		return $row;
+	}
+
+	public function entry_submission_ready($meta, $data, $autosave)
+	{
+		if ($autosave || empty($data['entry_id']) || empty($data['revision_post']['pages__pages_uri']))
+		{
+			return;
+		}
+
+		if ( ! isset(ee()->config->config['site_pages']))
+		{
+			return;
+		}
+
+		$site_id = ee()->config->item('site_id');
+
+		$site_pages =& ee()->config->config['site_pages'];
+
+		if ( ! isset($site_pages[$site_id]['uris'][$data['entry_id']]))
+		{
+			return;
+		}
+
+		$old_page_uri = $site_pages[$site_id]['uris'][$data['entry_id']];
+		$new_page_uri = $data['revision_post']['pages__pages_uri'];
+
+		if ($old_page_uri === $new_page_uri)
+		{
+			return;
+		}
+
+		// find all fields with this FT
+		$query = ee()->db->select('field_id')
+			->where('field_type', 'auto_pages_uri')
+			->get('channel_fields');
+
+		$fields = $query->result();
+
+		$query->free_result();
+
+		$table = ee()->db->dbprefix('channel_data');
+
+		$escaped_old_page_uri = ee()->db->escape($old_page_uri);
+
+		$regex = '/^'.preg_quote($old_page_uri, '/').'/';
+
+		foreach ($fields as $field)
+		{
+			$field_name = sprintf('field_id_'.$field->field_id);
+
+			$query = ee()->db->select($field_name)
+				->distinct()
+				->like($field_name, $old_page_uri, 'after')
+				->get('channel_data');
+
+			foreach ($query->result() as $row)
+			{
+				$old_child_page_uri = $row->{$field_name};
+				$new_child_page_uri = preg_replace($regex, $new_page_uri, $old_child_page_uri);
+
+				ee()->db->update(
+					'channel_data',
+					array(
+						$field_name => $new_child_page_uri,
+					),
+					array(
+						$field_name => $old_child_page_uri,
+					)
+				);
+			}
+
+			$query->free_result();
+		}
+
+		foreach ($site_pages[$site_id]['uris'] as $entry_id => $page_uri)
+		{
+			$site_pages[$site_id]['uris'][$entry_id] = preg_replace($regex, $new_page_uri, $page_uri);
+		}
 	}
 }
 
